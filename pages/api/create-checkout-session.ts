@@ -7,9 +7,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // CORS (프리뷰/실도메인 허용)
-  const origin = req.headers.origin || "*";
-  res.setHeader("Access-Control-Allow-Origin", origin as string);
+  // CORS
+  const origin = req.headers.origin ?? "*";
+  res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -17,21 +17,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== "POST") return res.status(405).end();
 
   try {
-    const { priceId, mode = "subscription", siteOrigin } = req.body;
-
-    const success = `${siteOrigin}/result?access=ok&session_id={CHECKOUT_SESSION_ID}`;
-    const cancel  = `${siteOrigin}/paywall?canceled=1`;
+    const { priceId, mode = "subscription", siteOrigin } = req.body as {
+      priceId: string;
+      mode?: "payment" | "subscription";
+      siteOrigin: string;
+    };
 
     const session = await stripe.checkout.sessions.create({
-      mode, // "payment" | "subscription"
+      mode,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: success,
-      cancel_url: cancel,
+      success_url: `${siteOrigin}/result?access=ok&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${siteOrigin}/paywall?canceled=1`,
       allow_promotion_codes: true,
     });
 
-    res.status(200).json({ url: session.url });
-  } catch (e: any) {
-    res.status(400).json({ error: e.message });
+    return res.status(200).json({ url: session.url });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return res.status(400).json({ error: message });
   }
 }
