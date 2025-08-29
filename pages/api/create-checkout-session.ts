@@ -6,15 +6,25 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: "2023-10-16",
 });
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+): Promise<void> {
   // CORS
   const origin = req.headers.origin ?? "*";
   res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST") return res.status(405).end();
+
+  if (req.method === "OPTIONS") {
+    res.status(200).end();     // ✅ 반환값 없이 종료
+    return;
+  }
+  if (req.method !== "POST") {
+    res.status(405).end();     // ✅ 반환값 없이 종료
+    return;
+  }
 
   try {
     const { priceId, mode = "subscription", siteOrigin } = req.body as {
@@ -31,9 +41,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       allow_promotion_codes: true,
     });
 
-    return res.status(200).json({ url: session.url });
+    res.status(200).json({ url: session.url });  // ✅ return 하지 않음
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    return res.status(400).json({ error: message });
+    res.status(400).json({ error: message });    // ✅ return 하지 않음
   }
 }
