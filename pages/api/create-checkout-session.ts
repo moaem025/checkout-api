@@ -1,6 +1,8 @@
-import type { NextApiHandler } from "next";
+// pages/api/create-checkout-session.ts
+import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 
+// apiVersion 명시는 제거(버전 타입 충돌 방지)
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 type CreateBody = {
@@ -9,13 +11,16 @@ type CreateBody = {
   mode?: "payment" | "subscription";
 };
 
-function setCors(res: Parameters<NextApiHandler>[1]) {
+function setCors(res: NextApiResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*"); // 필요시 Framer 도메인으로 제한
   res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
-const handler: NextApiHandler = async (req, res) => {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+): Promise<void> {
   setCors(res);
 
   if (req.method === "OPTIONS") { res.status(200).end(); return; }
@@ -29,7 +34,7 @@ const handler: NextApiHandler = async (req, res) => {
     }
     const { priceId, quantity, mode } = (body || {}) as CreateBody;
 
-    const siteUrl = process.env.PUBLIC_SITE_URL || `https://${req.headers.host ?? ""}`;
+    const siteUrl   = process.env.PUBLIC_SITE_URL || `https://${req.headers.host ?? ""}`;
     const successPath = process.env.SUCCESS_PATH || "/result";
     const cancelPath  = process.env.CANCEL_PATH  || "/";
 
@@ -40,7 +45,7 @@ const handler: NextApiHandler = async (req, res) => {
         price: priceId ?? (process.env.PRICE_ID as string),
         quantity: quantity ?? 1,
       }],
-      // ✅ success/cancel 은 여기!
+      // ✅ success/cancel URL은 여기!
       success_url: `${siteUrl}${successPath}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url:  `${siteUrl}${cancelPath}`,
     });
@@ -50,6 +55,4 @@ const handler: NextApiHandler = async (req, res) => {
     const message = err instanceof Error ? err.message : "Unexpected server error";
     res.status(500).json({ error: message }); return;
   }
-};
-
-export default handler;
+}
