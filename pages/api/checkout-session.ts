@@ -6,30 +6,36 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: "2023-10-16",
 });
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // CORS (Framer에서 호출할 수 있게)
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+): Promise<void> {
+  // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method === "OPTIONS") {
+    res.status(200).end();
+    return;
+  }
 
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+    res.status(405).json({ error: "Method not allowed" });
+    return;
   }
 
   try {
-    const sessionId = req.query.session_id as string | undefined;
+    const sessionId = typeof req.query.session_id === "string" ? req.query.session_id : "";
     if (!sessionId) {
-      return res.status(400).json({ error: "Missing session_id" });
+      res.status(400).json({ error: "Missing session_id" });
+      return;
     }
 
-    // 세션 상세 조회 (line_items까지 함께 가져오기)
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ["line_items.data.price"],
     });
 
-    // 그대로 전체를 반환해도 되고, 필요한 필드만 추려서 반환해도 됨
-    return res.status(200).json({
+    res.status(200).json({
       id: session.id,
       payment_status: session.payment_status,
       amount_total: session.amount_total,
@@ -43,8 +49,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           price_id: (li.price as Stripe.Price | null)?.id ?? null,
         })) ?? [],
     });
- } catch (err: unknown) {                        // ← any 대신 unknown
+    return;
+  } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    return res.status(500).json({ error: message });
+    res.status(500).json({ error: message });
+    return;
   }
 }
