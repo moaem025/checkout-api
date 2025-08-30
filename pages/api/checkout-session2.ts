@@ -5,6 +5,12 @@ import Stripe from "stripe";
 // apiVersion 명시하지 않음 (가장 안전)
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
+const ALLOWED_ORIGIN = "https://sienna-successes-623502.framer.app"; // 본인 도메인
+
+// ...
+res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
+
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
