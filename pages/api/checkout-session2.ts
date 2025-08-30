@@ -2,11 +2,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 
-// apiVersion는 명시하지 않음
+// apiVersion 명시는 제거
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 function setCors(res: NextApiResponse) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Origin", "*"); // 필요시 Framer 도메인으로 제한
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
@@ -14,29 +14,21 @@ function setCors(res: NextApiResponse) {
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
-) {
+): Promise<void> {
   setCors(res);
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (req.method === "OPTIONS") { res.status(200).end(); return; }
+  if (req.method !== "GET") { res.status(405).json({ error: "Method not allowed" }); return; }
 
   try {
-    const sessionIdParam =
-      typeof req.query.session_id === "string" ? req.query.session_id : "";
-
-    if (!sessionIdParam) {
-      return res.status(400).json({ error: "Missing session_id" });
-    }
+    const sessionIdParam = typeof req.query.session_id === "string" ? req.query.session_id : "";
+    if (!sessionIdParam) { res.status(400).json({ error: "Missing session_id" }); return; }
 
     const session = await stripe.checkout.sessions.retrieve(sessionIdParam, {
       expand: ["line_items.data.price"],
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       id: session.id,
       payment_status: session.payment_status,
       amount_total: session.amount_total,
@@ -50,10 +42,9 @@ export default async function handler(
           amount_total: li.amount_total,
           price_id: (li.price as Stripe.Price | null)?.id ?? null,
         })) ?? [],
-    });
+    }); return;
   } catch (err: unknown) {
-    const message =
-      err instanceof Error ? err.message : "Unexpected server error";
-    return res.status(500).json({ error: message });
+    const message = err instanceof Error ? err.message : "Unexpected server error";
+    res.status(500).json({ error: message }); return;
   }
 }
