@@ -5,12 +5,6 @@ import Stripe from "stripe";
 // apiVersion 명시하지 않음 (가장 안전)
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
-const ALLOWED_ORIGIN = "https://sienna-successes-623502.framer.app"; // 본인 도메인
-
-// ...
-res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
-
-
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -36,8 +30,16 @@ export default async function handler(
       return;
     }
 
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ["line_items.data.price"],
+const session = await stripe.checkout.sessions.create({
+      mode: "payment",                         // 또는 'subscription'
+      payment_method_types: ["card"],
+      line_items: [
+        { price: process.env.PRICE_ID as string, quantity: 1 }
+      ],
+
+      // ✅ 여기가 정확한 위치입니다!
+      success_url: `${process.env.PUBLIC_SITE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.PUBLIC_SITE_URL}/cancel`,
     });
 
     res.status(200).json({
