@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 
-// ✅ apiVersion 옵션 제거 (두 번째 인자 통째로 삭제)
+// ✅ apiVersion 속성 제거 (SDK의 기본 최신 버전 사용)
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 export default async function handler(
@@ -24,7 +24,8 @@ export default async function handler(
   }
 
   try {
-    const sessionId = typeof req.query.session_id === "string" ? req.query.session_id : "";
+    const sessionId =
+      typeof req.query.session_id === "string" ? req.query.session_id : "";
     if (!sessionId) {
       res.status(400).json({ error: "Missing session_id" });
       return;
