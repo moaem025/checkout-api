@@ -1,30 +1,26 @@
-// pages/api/checkout-session.ts
-import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiHandler } from "next";
 import Stripe from "stripe";
 
-// apiVersion 명시는 제거
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
-function setCors(res: NextApiResponse) {
+function setCors(res: Parameters<NextApiHandler>[1]) {
   res.setHeader("Access-Control-Allow-Origin", "*"); // 필요시 Framer 도메인으로 제한
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-): Promise<void> {
+const handler: NextApiHandler = async (req, res) => {
   setCors(res);
 
   if (req.method === "OPTIONS") { res.status(200).end(); return; }
   if (req.method !== "GET") { res.status(405).json({ error: "Method not allowed" }); return; }
 
   try {
-    const sessionIdParam = typeof req.query.session_id === "string" ? req.query.session_id : "";
-    if (!sessionIdParam) { res.status(400).json({ error: "Missing session_id" }); return; }
+    const sessionId =
+      typeof req.query.session_id === "string" ? req.query.session_id : "";
+    if (!sessionId) { res.status(400).json({ error: "Missing session_id" }); return; }
 
-    const session = await stripe.checkout.sessions.retrieve(sessionIdParam, {
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ["line_items.data.price"],
     });
 
@@ -47,4 +43,6 @@ export default async function handler(
     const message = err instanceof Error ? err.message : "Unexpected server error";
     res.status(500).json({ error: message }); return;
   }
-}
+};
+
+export default handler;
