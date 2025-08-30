@@ -44,7 +44,7 @@ export default async function handler(
         quantity: quantity ?? 1,
       }],
       success_url: `${siteUrl}${successPath}?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url:  `${siteUrl}${cancel_path ?? cancelPath}`,
+      cancel_url:  `${siteUrl}${cancelpath ?? cancelPath}`,
       // ↑ 만약 여기 오타가 있으면 `cancel_url: `${siteUrl}${cancelPath}`` 로 고쳐주세요.
     });
 
