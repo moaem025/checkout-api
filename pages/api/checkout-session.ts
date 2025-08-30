@@ -1,15 +1,20 @@
-import type { NextApiHandler } from "next";
+// pages/api/checkout-session.ts
+import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 
+// apiVersion 명시는 제거
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
-function setCors(res: Parameters<NextApiHandler>[1]) {
+function setCors(res: NextApiResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*"); // 필요시 Framer 도메인으로 제한
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
-const handler: NextApiHandler = async (req, res) => {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+): Promise<void> {
   setCors(res);
 
   if (req.method === "OPTIONS") { res.status(200).end(); return; }
@@ -43,6 +48,4 @@ const handler: NextApiHandler = async (req, res) => {
     const message = err instanceof Error ? err.message : "Unexpected server error";
     res.status(500).json({ error: message }); return;
   }
-};
-
-export default handler;
+}
