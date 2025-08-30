@@ -43,7 +43,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           price_id: (li.price as Stripe.Price | null)?.id ?? null,
         })) ?? [],
     });
-  } catch (e: unknown) {
-    return res.status(500).json({ error: e.message });
+ } catch (err: unknown) {                        // ← any 대신 unknown
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return res.status(500).json({ error: message });
   }
 }
